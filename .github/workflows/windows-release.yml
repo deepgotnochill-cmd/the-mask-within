@@ -1,0 +1,29 @@
+name: Publish Windows game
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Rebuild the gameplay and package the Windows player
+        shell: pwsh
+        run: |
+          $base = Join-Path $env:RUNNER_TEMP 'original.zip'
+          $player = Join-Path $env:RUNNER_TEMP 'The Mask Within'
+          Invoke-WebRequest 'https://github.com/deepgotnochill-cmd/the-mask-within/releases/download/v1.0.0/The.Mask.Within.zip' -OutFile $base
+          ./scripts/Build-Windows.ps1 -BaseZip $base -OutputDirectory $player
+          Compress-Archive -LiteralPath $player -DestinationPath 'The.Mask.Within.Windows.zip'
+      - name: Publish tagged release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        shell: pwsh
+        run: |
+          gh release create $env:TAG 'The.Mask.Within.Windows.zip' --verify-tag --title "The Mask Within $env:TAG" --notes-file RELEASE.md

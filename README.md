@@ -1,74 +1,39 @@
-The Mask Within
+# The Mask Within
 
-You are not alone. Something is hunting you.
+It is midnight and someone is moving through your house. You can hear him coming. He can hear you turning the crank.
 
-The Mask Within is a survival-horror game I created during my school years using Unity and AI-assisted development.
+**[Download the Windows game](https://github.com/deepgotnochill-cmd/the-mask-within/releases/download/v1.1.0/The.Mask.Within.Windows.zip)** · [Release notes](RELEASE.md) · [Original school-fair edition](https://github.com/deepgotnochill-cmd/the-mask-within/releases/tag/v1.0.0)
 
-The idea was to create a tense and atmospheric horror experience where the player has to explore, survive, and find a way out while being hunted inside their own home.
+Extract the whole ZIP, open **The Mask Within**, and run **The Mask Within.exe**. The game runs offline.
 
+## Survive the night
 
-▶ PLAY THE GAME
+Start by finding the front door. When the route changes, watch the objective in the corner. The stair crank catches at each third of a turn. You can let go at a catch and come back later if footsteps get close.
 
-→ Download The Mask Within — Windows
+A wall or corner can buy you enough time to slip under a bed. Try that while the hunter can still see you and he will remember where you went.
 
-→ Download the latest release
-→ Extract the ZIP file
-→ Run The Mask Within.exe
+| Control | Action |
+| --- | --- |
+| W A S D / Mouse | Move / look |
+| Left Shift / Left Ctrl | Run / crouch |
+| E | Interact, take a key or unlock a door |
+| Hold E | Turn the crank |
+| H beside a bedroom bed | Hide or get out |
+| Hold left mouse | Carry an object, release to drop it |
+| Esc | Pause or resume |
 
-Platform → Windows
-Engine → Unity
-Status → Playable
+## About the project
 
+I created The Mask Within during my school years as one of my early experiments with Unity and AI-assisted development. I worked on the concept, game design, direction, and testing. The Windows edition builds on that same house and its escape puzzle.
 
-STORY
+**Deep Datta Chaudhury**
 
-It's midnight. You are inside your house when you realize that something is wrong.
+## Build the Windows edition
 
-Someone has broken in.
+The C# files in [Gameplay](Gameplay) run inside the original Unity 2022.3.20f1 Mono player. Its four scenes, art and audio are distributed in the v1.0.0 Windows release. To rebuild on Windows with PowerShell and the .NET 8 SDK or later, download the original release ZIP and run this from the repository:
 
-A murderer is inside the house, searching for you. You have to explore your surroundings, find what you need, avoid being caught, and figure out how to escape.
+```powershell
+./scripts/Build-Windows.ps1 -BaseZip ./The.Mask.Within.zip -OutputDirectory ./Builds/Windows
+```
 
-The longer you stay, the more dangerous it becomes.
-
-
-GAMEPLAY
-
-→ Explore the house and its surroundings
-→ Avoid the enemy and stay out of sight
-→ Find keys and other important items
-→ Interact with the environment
-→ Use hiding spots to avoid danger
-→ Pay attention to sounds and movement
-→ Find a way to escape
-
-
-BUILT WITH
-
-→ Unity
-→ C#
-→ AI-assisted development
-→ AI prompt engineering
-
-
-MY ROLE
-
-I created this project during my school years as one of my early experiments with game development and AI.
-
-I used AI and prompt engineering to help with parts of the programming and implementation. I was responsible for the overall concept, game design, direction, testing, and bringing the different parts together into a playable game.
-
-This project represents one of my first experiments with using AI as a development tool.
-
-
-PROJECT STATUS
-
-Playable — Legacy School Project
-
-The Mask Within is preserved as an early project from my school years and represents one of my first attempts at creating a complete playable game.
-
-
-AUTHOR
-
-Deep Datta Chaudhury
-
-If you play the game and enjoy it, feel free to star the repository.
-Thank you so much guys, Download , Play and enjoy :D
+Choose a new or empty output folder. The script checks the original ZIP against its published SHA-256, extracts the runtime files, and compiles the gameplay against the libraries shipped with the game.
