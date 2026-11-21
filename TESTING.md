@@ -19,6 +19,8 @@ Original cloth assets log `CollisionMeshData` / `Cannot initialize Cloth` diagno
 
 Hidden-window tests can skip rendering, so their frame-time measurements must not be used as an FPS claim. Visual inspection uses a visible window. Neither a short measurement nor the scripted route is an exhaustive benchmark or a full manual playthrough.
 
+The visible review produced the hallway screenshot and confirmed the rigged figure appears correctly, but reached the test harness's 140-second timeout before completing its timing sample. Performance remains unverified; the completed gameplay result above comes from the separate scripted run.
+
 ## Reproduce
 
 Install a .NET SDK and download the original v1.0 ZIP, then run:
