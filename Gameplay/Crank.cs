@@ -1,89 +1,150 @@
+using System.Collections;
 using UnityEngine;
 
 public class Crank : MonoBehaviour
 {
-    public GameObject objectToActivate;
-    public float crankDuration = 10f;
-    public Transform crankHandle;
-    public float crankRotationSpeed = 360f;
-    public Vector3 rotationAxis = Vector3.forward;
-    public AudioSource audioSource;
-    public AudioClip crankSound;
-    public AudioClip completionSound;
-    public PlayerFootstepNoise footstepNoiseEmitter;
-    public GameObject key;
-    public GameObject Text1;
+	public GameObject objectToActivate;
 
-    private bool nearby;
-    private bool turning;
-    private bool completed;
-    private float progress;
-    private float nextNoise;
-    private Quaternion rest;
+	public float crankDuration = 10f;
 
-    private void Start()
-    {
-        if (crankHandle != null) rest = crankHandle.localRotation;
-        if (Text1 != null) Text1.SetActive(false);
-    }
+	public Transform crankHandle;
 
-    private void Update()
-    {
-        if (completed || Time.timeScale <= 0f) return;
-        if (EscapeJournal.PlayerHidden) { StopTurning(); return; }
-        if (!nearby || !Input.GetKey(KeyCode.E))
-        {
-            StopTurning();
-            if (nearby) EscapeJournal.Current?.Prompt("Hold E   Turn the stair crank", progress);
-            return;
-        }
+	public float crankRotationSpeed = 360f;
 
-        if (!turning)
-        {
-            turning = true;
-            if (audioSource != null && crankSound != null)
-            {
-                audioSource.clip = crankSound;
-                audioSource.loop = true;
-                audioSource.Play();
-            }
-        }
-        float duration = Mathf.Max(0.1f, crankDuration);
-        progress = Mathf.Min(1f, progress + Time.deltaTime / duration);
-        RotateHandle();
-        if (Time.time >= nextNoise)
-        {
-            if (footstepNoiseEmitter != null) footstepNoiseEmitter.GenerateNoise(transform.position);
-            nextNoise = Time.time + 0.65f;
-        }
-        EscapeJournal.Current?.Prompt("Turning   ·   Release E to let go", progress);
-        if (progress < 1f) return;
+	public Vector3 rotationAxis = Vector3.forward;
 
-        completed = true;
-        StopTurning();
-        if (audioSource != null && completionSound != null) audioSource.PlayOneShot(completionSound);
-        if (objectToActivate != null) objectToActivate.SetActive(true);
-        if (key != null) key.SetActive(true);
-        EscapeJournal.Current?.Advance(EscapeJournal.Stage.Key);
-    }
+	public AudioSource audioSource;
 
-    private void RotateHandle()
-    {
-        if (crankHandle != null)
-            crankHandle.localRotation = rest * Quaternion.AngleAxis(progress * crankDuration * crankRotationSpeed, rotationAxis.normalized);
-    }
+	public AudioClip crankSound;
 
-    private void StopTurning()
-    {
-        if (!turning) return;
-        turning = false;
-        if (audioSource != null) { audioSource.Stop(); audioSource.loop = false; }
-        // A mechanical ratchet catches after each third of a full turn.
-        progress = Mathf.Floor(progress * 3f) / 3f;
-        RotateHandle();
-    }
+	public AudioClip completionSound;
 
-    private void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) nearby = true; }
-    private void OnTriggerExit(Collider other) { if (other.CompareTag("Player")) nearby = false; }
-    private void OnDisable() { nearby = false; StopTurning(); }
+	public PlayerFootstepNoise footstepNoiseEmitter;
+
+	private bool isPlayerInZone;
+
+	private bool isCranking;
+
+	private bool isCrankCompleted;
+
+	private float crankTimer;
+
+	private Quaternion initialRotation;
+	private readonly PlayerOverlap overlap = new PlayerOverlap();
+	private Coroutine returning;
+	private float nextNoise;
+
+	public GameObject key;
+
+	public GameObject Text1;
+
+	private void Start()
+	{
+		initialRotation = crankHandle.rotation;
+	}
+
+	private void Update()
+	{
+		if (Time.timeScale <= 0f) return;
+		isPlayerInZone = overlap.Any;
+		if (isPlayerInZone && !isCrankCompleted && Input.GetKey(KeyCode.E))
+		{
+			if (!isCranking)
+			{
+				isCranking = true;
+				if (returning != null) { StopCoroutine(returning); returning = null; }
+				crankTimer = 0f;
+				Debug.Log("Cranking started");
+				audioSource.clip = crankSound;
+				audioSource.loop = true;
+				audioSource.Play();
+			}
+			crankTimer += Time.deltaTime;
+			float angle = crankRotationSpeed * Time.deltaTime;
+			crankHandle.Rotate(rotationAxis, angle);
+			if (Time.time >= nextNoise) {
+				footstepNoiseEmitter.GenerateNoise(crankHandle.position);
+				nextNoise = Time.time + 0.4f;
+			}
+			if (crankTimer >= crankDuration)
+			{
+				CompleteCranking();
+			}
+		}
+		else if (isCranking)
+		{
+			isCranking = false;
+			crankTimer = 0f;
+			Debug.Log("Cranking interrupted or player left the zone");
+			audioSource.Stop();
+			ReturnHandle();
+		}
+	}
+
+	private void OnTriggerEnter(Collider other)
+	{
+		if (other.CompareTag("Player"))
+		{
+			overlap.Enter(other);
+			isPlayerInZone = true;
+			Debug.Log("Player entered the trigger zone");
+			Text1.SetActive(!isCrankCompleted);
+		}
+	}
+
+	private void OnTriggerExit(Collider other)
+	{
+		if (other.CompareTag("Player"))
+		{
+			overlap.Exit(other);
+			if (overlap.Any) return;
+			isPlayerInZone = false;
+			isCranking = false;
+			crankTimer = 0f;
+			Debug.Log("Player left the trigger zone");
+			audioSource.Stop();
+			if (!isCrankCompleted) ReturnHandle();
+			Text1.SetActive(value: false);
+		}
+	}
+
+	private void CompleteCranking()
+	{
+		isCranking = false;
+		isCrankCompleted = true;
+		crankTimer = 0f;
+		audioSource.Stop();
+		audioSource.PlayOneShot(completionSound);
+		objectToActivate.SetActive(value: true);
+		Debug.Log("Cranking complete! Object activated.");
+		Text1.SetActive(value: false);
+		key.SetActive(value: true);
+	}
+
+	private IEnumerator ReturnCrankToInitialPosition()
+	{
+		Quaternion currentRotation = crankHandle.rotation;
+		float elapsedTime = 0f;
+		float returnDuration = 1f;
+		while (elapsedTime < returnDuration)
+		{
+			crankHandle.rotation = Quaternion.Slerp(currentRotation, initialRotation, elapsedTime / returnDuration);
+			elapsedTime += Time.deltaTime;
+			yield return null;
+		}
+		crankHandle.rotation = initialRotation;
+		returning = null;
+	}
+
+	private void ReturnHandle() {
+		if (returning != null) StopCoroutine(returning);
+		returning = StartCoroutine(ReturnCrankToInitialPosition());
+	}
+
+	private void OnDisable() {
+		overlap.Clear(); isPlayerInZone = false; isCranking = false; crankTimer = 0f;
+		if (audioSource != null) audioSource.Stop();
+		if (Text1 != null) Text1.SetActive(false);
+		StopAllCoroutines(); returning = null;
+	}
 }

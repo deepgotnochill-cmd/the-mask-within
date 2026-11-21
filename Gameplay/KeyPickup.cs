@@ -2,36 +2,77 @@ using UnityEngine;
 
 public class KeyPickup : MonoBehaviour
 {
-    public Transform keyHolder;
-    public AudioClip pickupSound;
-    public AudioSource audioSource;
-    public GameObject pickupText;
+	public Transform keyHolder;
 
-    public bool IsCarried { get; private set; }
-    private bool nearby;
+	public AudioClip pickupSound;
 
-    private void Start()
-    {
-        if (pickupText != null) pickupText.SetActive(false);
-    }
+	public AudioSource audioSource;
 
-    private void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) nearby = true; }
-    private void OnTriggerExit(Collider other) { if (other.CompareTag("Player")) nearby = false; }
+	public GameObject pickupText;
 
-    private void Update()
-    {
-        if (Time.timeScale <= 0f || EscapeJournal.PlayerHidden || !nearby || IsCarried || keyHolder == null) return;
-        EscapeJournal.Current?.Prompt("E   Take the attic key");
-        if (!Input.GetKeyDown(KeyCode.E)) return;
+	private bool canPickup;
 
-        IsCarried = true;
-        var body = GetComponent<Rigidbody>();
-        if (body != null) body.isKinematic = true;
-        foreach (var shape in GetComponentsInChildren<Collider>()) shape.enabled = false;
-        transform.SetParent(keyHolder, true);
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
-        if (audioSource != null && pickupSound != null) audioSource.PlayOneShot(pickupSound);
-        EscapeJournal.Current?.Advance(EscapeJournal.Stage.Attic);
-    }
+	private GameObject player;
+
+	private GameObject key;
+	private readonly PlayerOverlap overlap = new PlayerOverlap();
+	public bool IsCarried { get { return keyHolder != null && transform.parent == keyHolder; } }
+
+	private void Start()
+	{
+		player = GameObject.FindGameObjectWithTag("Player");
+	}
+
+	private void OnTriggerEnter(Collider other)
+	{
+		if (other.CompareTag("Player"))
+		{
+			if (IsCarried) return;
+			overlap.Enter(other);
+			canPickup = true;
+			pickupText.SetActive(value: true);
+		}
+	}
+
+	private void OnTriggerExit(Collider other)
+	{
+		if (other.CompareTag("Player"))
+		{
+			overlap.Exit(other);
+			canPickup = !IsCarried && overlap.Any;
+			pickupText.SetActive(canPickup);
+		}
+	}
+
+	private void Update()
+	{
+		if (Time.timeScale <= 0f) return;
+		canPickup = !IsCarried && overlap.Any;
+		if (canPickup && Input.GetKeyDown(KeyCode.E))
+		{
+			PickupKey();
+		}
+	}
+
+	private void PickupKey()
+	{
+		if (IsCarried) return;
+		key = gameObject;
+		if (key != null)
+		{
+			key.transform.position = keyHolder.position;
+			key.transform.rotation = keyHolder.rotation;
+			key.transform.parent = keyHolder;
+			pickupText.SetActive(value: false);
+			audioSource.PlayOneShot(pickupSound);
+			Debug.Log("Key picked up");
+			canPickup = false;
+			overlap.Clear();
+			foreach (var shape in GetComponents<Collider>()) shape.enabled = false;
+			var body = GetComponent<Rigidbody>();
+			if (body != null) body.isKinematic = true;
+		}
+	}
+
+	private void OnDisable() { overlap.Clear(); canPickup = false; if (pickupText != null) pickupText.SetActive(false); }
 }

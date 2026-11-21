@@ -23,12 +23,11 @@ public class PlayerItemPickup : MonoBehaviour
 
 	private void Update()
 	{
-		if (Time.timeScale <= 0f || EscapeJournal.PlayerHidden) return;
 		if (Input.GetMouseButtonDown(0))
 		{
 			TryPickupItem();
 		}
-		if (heldItem != null && !Input.GetMouseButton(0))
+		if (Input.GetMouseButtonUp(0))
 		{
 			DropItem();
 		}

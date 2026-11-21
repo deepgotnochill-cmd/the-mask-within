@@ -9,8 +9,6 @@ public class RandomSoundPlayer : MonoBehaviour
 
 	public float maxInterval = 5f;
 
-	private float emptyRoomChance = 0.28f;
-
 	private AudioSource audioSource;
 
 	private void Start()
@@ -30,16 +28,10 @@ public class RandomSoundPlayer : MonoBehaviour
 	{
 		while (true)
 		{
-			float seconds = Random.Range(Mathf.Max(0.35f, minInterval * 0.65f), Mathf.Max(maxInterval, minInterval + 0.5f));
-			if (Random.value < emptyRoomChance)
-			{
-				seconds += Random.Range(2.5f, 6f);
-			}
+			float seconds = Random.Range(minInterval, maxInterval);
 			yield return new WaitForSeconds(seconds);
 			AudioClip clip = sounds[Random.Range(0, sounds.Length)];
-			audioSource.pitch = Random.Range(0.76f, 1.08f);
-			audioSource.panStereo = Random.Range(-0.45f, 0.45f);
-			audioSource.PlayOneShot(clip, Random.Range(0.38f, 0.92f));
+			audioSource.PlayOneShot(clip);
 		}
 	}
 }

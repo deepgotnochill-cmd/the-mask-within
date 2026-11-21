@@ -25,7 +25,6 @@ public class PlayerController : MonoBehaviour
 	private Vector3 moveDirection;
 
 	private float verticalLookRotation;
-	private Camera view;
 
 	public float maxLookAngle = 60f;
 
@@ -34,7 +33,7 @@ public class PlayerController : MonoBehaviour
 	private void Start()
 	{
 		characterController = GetComponent<CharacterController>();
-		view = GetComponentInChildren<Camera>();
+        HouseDread.Attach(this);
 		footstepNoise = GetComponent<PlayerFootstepNoise>();
 		footstepTimer = 0f;
 		Cursor.lockState = CursorLockMode.Locked;
@@ -42,12 +41,11 @@ public class PlayerController : MonoBehaviour
 
 	private void Update()
 	{
-		if (Time.timeScale <= 0f || !characterController.enabled) return;
+        if (Time.timeScale <= 0f) return;
 		LookAround();
 		HandleCrouch();
 		Move();
-		if (!isCrouching && characterController.isGrounded &&
-			new Vector2(characterController.velocity.x, characterController.velocity.z).sqrMagnitude > 0.04f)
+		if (!isCrouching && characterController.isGrounded && moveDirection.magnitude > 0.1f)
 		{
 			footstepTimer += Time.deltaTime;
 			if (footstepTimer >= footstepInterval)
@@ -69,7 +67,7 @@ public class PlayerController : MonoBehaviour
 		base.transform.Rotate(0f, yAngle, 0f);
 		verticalLookRotation -= num;
 		verticalLookRotation = Mathf.Clamp(verticalLookRotation, 0f - maxLookAngle, maxLookAngle);
-		if (view != null) view.transform.localEulerAngles = new Vector3(verticalLookRotation, 0f, 0f);
+		Camera.main.transform.localEulerAngles = new Vector3(verticalLookRotation, 0f, 0f);
 	}
 
 	private void Move()
@@ -86,18 +84,28 @@ public class PlayerController : MonoBehaviour
 		float y = moveDirection.y;
 		moveDirection = (base.transform.forward * Input.GetAxis("Vertical") + base.transform.right * Input.GetAxis("Horizontal")).normalized * num;
 		moveDirection.y = y;
-		if (characterController.isGrounded && moveDirection.y < 0f) moveDirection.y = -1f;
+		if (characterController.isGrounded)
+		{
+			if (Input.GetButton("Jump") && !isCrouching)
+			{
+				moveDirection.y = 0f;
+			}
+			else
+			{
+				moveDirection.y = 0f;
+			}
+		}
 		moveDirection.y += Physics.gravity.y * Time.deltaTime;
 		characterController.Move(moveDirection * Time.deltaTime);
 	}
 
 	private void PlayFootstepSound()
 	{
-		if (footstepNoise != null) footstepNoise.GenerateNoise(transform.position);
-		if (footstepSounds != null && footstepSounds.Length != 0 && audioSource != null)
+		if (footstepSounds.Length != 0 && audioSource != null)
 		{
 			AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
 			audioSource.PlayOneShot(clip);
+			footstepNoise.GenerateNoise(base.transform.position);
 		}
 	}
 

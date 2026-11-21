@@ -2,40 +2,58 @@ using UnityEngine;
 
 public class DoorOpener : MonoBehaviour
 {
-    public GameObject door;
-    public GameObject key;
-    public AudioClip doorOpenSound;
-    public AudioSource audioSource;
-    public GameObject texti;
-    public GameObject door1;
-    private KeyPickup lockKey;
-    private bool nearby;
-    private bool isOpen;
+	public GameObject door;
 
-    private void Start()
-    {
-        if (key != null) lockKey = key.GetComponent<KeyPickup>();
-        if (texti != null) texti.SetActive(false);
-    }
+	public GameObject key;
 
-    private void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) nearby = true; }
-    private void OnTriggerExit(Collider other) { if (other.CompareTag("Player")) nearby = false; }
+	public AudioClip doorOpenSound;
 
-    private void Update()
-    {
-        if (Time.timeScale <= 0f || EscapeJournal.PlayerHidden || !nearby || isOpen) return;
-        if (lockKey == null || !lockKey.IsCarried)
-        {
-            EscapeJournal.Current?.Prompt("Locked   ·   An attic key fits here");
-            return;
-        }
+	public AudioSource audioSource;
 
-        EscapeJournal.Current?.Prompt("E   Unlock the attic door");
-        if (!Input.GetKeyDown(KeyCode.E) || door == null) return;
-        isOpen = true;
-        EscapeJournal.Current?.Advance(EscapeJournal.Stage.Escape);
-        if (audioSource != null && doorOpenSound != null) audioSource.PlayOneShot(doorOpenSound);
-        if (door1 != null) door1.SetActive(true);
-        door.SetActive(false);
-    }
+	private bool isOpen;
+	private readonly PlayerOverlap overlap = new PlayerOverlap();
+	private KeyPickup carriedKey;
+
+	public GameObject texti;
+
+	public GameObject door1;
+
+	private void OnTriggerEnter(Collider other)
+	{
+		if (other.tag == "Player")
+		{
+			overlap.Enter(other);
+			TryUnlock();
+			texti.SetActive(!isOpen);
+		}
+	}
+
+	private void Update() { if (Time.timeScale > 0f && !isOpen && overlap.Any) TryUnlock(); }
+	private void TryUnlock() {
+		if (isOpen || key == null) return;
+		if (carriedKey == null) carriedKey = key.GetComponent<KeyPickup>();
+		if (carriedKey != null && carriedKey.IsCarried) OpenDoor();
+	}
+
+	private void OnTriggerExit(Collider other)
+	{
+		if (other.tag == "Player")
+		{
+			overlap.Exit(other);
+			texti.SetActive(!isOpen && overlap.Any);
+		}
+	}
+
+	private void OpenDoor()
+	{
+		if (door != null)
+		{
+			if (doorOpenSound != null) AudioSource.PlayClipAtPoint(doorOpenSound, transform.position, audioSource != null ? audioSource.volume : 1f);
+			door.SetActive(value: false);
+			isOpen = true;
+			texti.SetActive(false);
+			door1.SetActive(value: true);
+		}
+	}
+	private void OnDisable() { overlap.Clear(); if (texti != null) texti.SetActive(false); }
 }
